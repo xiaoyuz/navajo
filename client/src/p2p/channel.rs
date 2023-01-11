@@ -1,7 +1,6 @@
 use std::sync::Arc;
-use tokio::sync::broadcast;
 use tokio::sync::mpsc;
-use p2p::message::{Message, P2PMessage};
+use p2p::message::P2PMessage;
 
 #[derive(Debug, Clone)]
 pub enum ChannelSignal {

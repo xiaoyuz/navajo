@@ -17,21 +17,37 @@ use crate::route::device_scope_cfg;
 use crate::session::SessionClient;
 
 #[derive(Clone)]
-pub struct Server {
-    pub(crate) config: ServerConfig,
-    pub(crate) session_client: Arc<SessionClient>,
-    pub(crate) http_client: Arc<HttpClient>,
-    pub(crate) device_id: String,
-    pub(crate) p2p_client_sender: Arc<Sender<ChannelSignal>>,
+pub struct WebServer {
+    config: WebServerConfig,
+    session_client: Arc<SessionClient>,
+    http_client: Arc<HttpClient>,
+    device_id: String,
+    p2p_client_sender: Arc<Sender<ChannelSignal>>,
 }
 
 #[derive(Clone)]
-pub struct ServerConfig {
+pub struct WebServerConfig {
     pub port: u16,
     pub tcp_port: String,
 }
 
-impl Server {
+impl WebServer {
+    pub fn new(
+        config: WebServerConfig,
+        session_client: Arc<SessionClient>,
+        http_client: Arc<HttpClient>,
+        device_id: String,
+        p2p_client_sender: Arc<Sender<ChannelSignal>>,
+    ) -> Self {
+        Self {
+            config,
+            session_client,
+            http_client,
+            device_id,
+            p2p_client_sender,
+        }
+    }
+
     pub async fn start(self) -> std::io::Result<()> {
         let port = self.config.port;
         let arc_state = Data::new(self);
@@ -60,19 +76,6 @@ impl Server {
 
     pub async fn create_session(&self) -> NavajoResult<(String, String)> {
         self.logic_create_session().await
-    }
-
-    pub async fn test_p2p(&self) -> NavajoResult<()> {
-        let ping_message = PingMessage {
-            address: "111".to_string(),
-            device_id: "222".to_string()
-        };
-        let p2p_message = P2PMessage {
-            message_type: 0,
-            data: (&ping_message).into(),
-        };
-        self.p2p_client_sender.send(Message(p2p_message)).await.unwrap();
-        Ok(())
     }
 
     async fn logic_create_session(&self) -> NavajoResult<(String, String)> {
@@ -104,5 +107,18 @@ impl Server {
         session_client.set_session(&self.config.tcp_port, &session).await;
         session_client.set_secret(&self.config.tcp_port, &shared_secret).await;
         Ok((session, shared_secret))
+    }
+
+    pub async fn test_p2p(&self) -> NavajoResult<()> {
+        let ping_message = PingMessage {
+            address: "111".to_string(),
+            device_id: "222".to_string()
+        };
+        let p2p_message = P2PMessage {
+            message_type: 0,
+            data: (&ping_message).into(),
+        };
+        self.p2p_client_sender.send(Message(p2p_message)).await.unwrap();
+        Ok(())
     }
 }

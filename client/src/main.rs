@@ -1,22 +1,19 @@
 use std::sync::Arc;
-use actix_web::{App, HttpServer, web};
-use actix_web::web::Data;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 use nredis::{RedisClient, RedisConfig};
 use crate::http::HttpClient;
 use crate::p2p::channel::create_client_channel;
 use crate::p2p::client::{P2PClient, P2PConfig};
-use crate::route::device_scope_cfg;
-use crate::server::{Server, ServerConfig};
 use crate::session::SessionClient;
+use crate::web_server::{WebServer, WebServerConfig};
 
 mod session;
 mod route;
 mod errors;
 mod http;
 mod p2p;
-mod server;
+mod web_server;
 
 const PORT: u16 = 8085;
 const REDIS_HOST: &str = "redis://127.0.0.1/";
@@ -27,7 +24,7 @@ const SERVER_HOST: &str = "http://127.0.0.1:28100";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let server_config = ServerConfig {
+    let server_config = WebServerConfig {
         port: PORT,
         tcp_port: TCP_PORT.to_string(),
     };
@@ -47,24 +44,24 @@ async fn main() -> std::io::Result<()> {
     let device_id = generate_device_id(TCP_PORT, &session_client).await;
 
     let mutex_rx = Arc::new(Mutex::new(rx));
-    let p2p_client = P2PClient {
-        connected: false,
-        config: p2p_config,
-        channel_tx: tx.clone(),
-        channel_rx: mutex_rx,
-        session_client: session_client.clone(),
-        device_id: device_id.clone(),
-    };
-    p2p_client.start().await;
+    let p2p_client = P2PClient::new(
+        p2p_config,
+        tx.clone(),
+        mutex_rx,
+        session_client.clone(),
+        device_id.clone(),
+    );
 
-    let server = Server {
-        config: server_config,
+    let web_server = WebServer::new(
+        server_config,
         session_client,
-        http_client: http_client.clone(),
-        device_id: device_id.clone(),
-        p2p_client_sender: tx.clone(),
-    };
-    server.start().await
+        http_client.clone(),
+        device_id.clone(),
+        tx.clone(),
+    );
+
+    p2p_client.start().await;
+    web_server.start().await
 }
 
 async fn generate_device_id(tcp_port: &str, session_client: &SessionClient) -> String {

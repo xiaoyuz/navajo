@@ -114,3 +114,15 @@ impl From<&P2PMessage> for Vec<u8> {
         serde_json::to_vec(value).unwrap()
     }
 }
+
+impl From<&str> for P2PMessage {
+    fn from(value: &str) -> Self {
+        serde_json::from_str(value).unwrap()
+    }
+}
+
+impl From<&P2PMessage> for String {
+    fn from(value: &P2PMessage) -> Self {
+        serde_json::to_string(value).unwrap()
+    }
+}

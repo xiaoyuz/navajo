@@ -1,4 +1,5 @@
 use ncrypto::algo::{aes, base64};
+use ncrypto::algo::base64::decode_from_str;
 use crate::packet::p2p_packet::PacketContent;
 
 pub trait Writer {
@@ -34,10 +35,10 @@ impl Writer for CryptoWriter {
         let session = params[0];
         let secret = params[1];
 
-        let secret = secret.as_bytes();
-        let data = data.as_bytes();
+        let secret = decode_from_str(secret);
+        let data = decode_from_str(data);
 
-        let encrypted_data = aes::encode(secret, data).ok()?;
+        let encrypted_data = aes::encode(&secret, &data).ok()?;
 
         let encrypted_data = base64::encode_to_str(&encrypted_data);
         let content = PacketContent {
@@ -54,6 +55,7 @@ impl Writer for CryptoWriter {
     }
 }
 
+#[derive(Clone)]
 pub struct MessageWriter;
 
 impl Writer for MessageWriter {

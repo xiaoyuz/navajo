@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use std::time::Duration;
-use actix_web::web::BufMut;
 use tokio::{io, spawn};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
 use tokio::net::{TcpSocket, TcpStream};
@@ -11,6 +10,7 @@ use common::errors::{NavajoError, NavajoResult};
 use common::errors::NavajoErrorRepr::SocketError;
 use p2p::message::Message::PingMessage;
 use p2p::message::P2PMessage;
+use p2p::packet::writers::{MessageWriter, Writer};
 use crate::p2p::channel::{ChannelSignal, create_thread_close_channel};
 use crate::p2p::channel::ChannelSignal::{Message, RecycleChannelThread, SocketClosed};
 use crate::session::SessionClient;
@@ -25,16 +25,36 @@ pub struct P2PConfig {
     pub server_host: String,
 }
 
+#[derive(Clone)]
 pub struct P2PClient {
-    pub(crate) connected: bool,
-    pub(crate) config: P2PConfig,
-    pub(crate) channel_tx: ChannelSignalSender,
-    pub(crate) channel_rx: ChannelSignalReceiver,
-    pub(crate) session_client: Arc<SessionClient>,
-    pub(crate) device_id: String,
+    connected: bool,
+    config: P2PConfig,
+    channel_tx: ChannelSignalSender,
+    channel_rx: ChannelSignalReceiver,
+    session_client: Arc<SessionClient>,
+    device_id: String,
+    message_writer: Arc<MessageWriter>,
 }
 
 impl P2PClient {
+    pub fn new(
+        config: P2PConfig,
+        channel_tx: ChannelSignalSender,
+        channel_rx: ChannelSignalReceiver,
+        session_client: Arc<SessionClient>,
+        device_id: String,
+    ) -> Self {
+        Self {
+            connected: false,
+            config,
+            channel_tx,
+            channel_rx,
+            session_client,
+            device_id,
+            message_writer: Arc::new(MessageWriter),
+        }
+    }
+
     pub async fn start(mut self) {
         spawn(async move {
             loop {
@@ -80,6 +100,11 @@ impl P2PClient {
         Err(NavajoError::new(SocketError { message: "Connection closed" }))
     }
 
+    pub async fn send(&self, p2p_message: P2PMessage) {
+        let sender = self.channel_tx.clone();
+        sender.send(Message(p2p_message)).await.unwrap();
+    }
+
     fn start_socket_read_thread(&self, r: ReadHalf<TcpStream>, close_tx: mpsc::Sender<ChannelSignal>) {
         // Socket read handler thread, to handle message sent by server
         spawn(async move {
@@ -89,8 +114,11 @@ impl P2PClient {
 
     fn start_channel_handler_thread(&self, w: WriteHalf<TcpStream>, channel_rx: ChannelSignalReceiver) {
         // Channel handler thread, to handler action of send message to socket
+        let session_client = self.session_client.clone();
+        let tcp_port = self.config.local_port.clone();
+        let message_writer = self.message_writer.clone();
         spawn(async move {
-            channel_handle(w, channel_rx).await;
+            channel_handle(w, channel_rx, session_client, tcp_port, message_writer).await;
         });
     }
 
@@ -158,16 +186,40 @@ async fn socket_read_handle(
 
 async fn channel_handle(
     mut w: WriteHalf<TcpStream>,
-    channel_rx: ChannelSignalReceiver
+    channel_rx: ChannelSignalReceiver,
+    session_client: Arc<SessionClient>,
+    tcp_port: String,
+    message_writer: Arc<MessageWriter>,
 ) {
     while let Some(signal) = channel_rx.lock().await.recv().await {
         match signal {
             Message(message) => {
-                let buf: Vec<u8> = (&message).into();
-                w.write_all(buf.as_slice()).await.unwrap()
+                let encoded = encode_message(
+                    session_client.clone(),
+                    tcp_port.clone(),
+                    message_writer.clone(),
+                    message
+                ).await;
+                if let Some(buf) = encoded {
+                    w.write_all(buf.as_slice()).await.unwrap()
+                }
             }
             RecycleChannelThread => return,
             _ => (),
         }
     }
+}
+
+async fn encode_message(
+    session_client: Arc<SessionClient>,
+    tcp_port: String,
+    message_writer: Arc<MessageWriter>,
+    message: P2PMessage
+) -> Option<Vec<u8>> {
+    let message_str: String = (&message).into();
+    let session = session_client.get_session(&tcp_port).await?;
+    let secret = session_client.get_secret(&tcp_port).await?;
+    let params = &[session.as_str(), secret.as_str()];
+    let result = message_writer.process(&message_str, params)?;
+    Some(result.as_bytes().to_vec())
 }

@@ -11,24 +11,27 @@ mod tests {
     use crate::algo::aes;
     use crate::algo::base58;
     use crate::algo::base64;
+    use crate::algo::base64::decode_from_str;
     use crate::algo::diffie_hellman::DiffieHellman;
     use crate::algo::ecdsa::{gen_key_pair, sign, verify};
     use crate::algo::sha256;
 
     #[test]
     fn test_aes_bytes() {
-        let data = "MTM0NTY3".as_bytes();
-        let sec = "12345678901234567890123456789012".as_bytes();
+        let data = "MTM0NTY3";
+        let sec = "fgVobm2TEGDyWX6GOJrXTuuUoNbfeMpJSa0WhdTcO0k=";
 
+        let sec = decode_from_str(sec);
+        let data = decode_from_str(data);
         println!("{:?}", data);
 
-        let encrypted = aes::encode(sec, data).unwrap();
+        let encrypted = aes::encode(&sec, &data).unwrap();
         println!("{:?}", encrypted);
 
         let b64 = base64::encode_to_str(&encrypted);
         println!("{:?}", b64);
 
-        let decrypted = aes::decode(sec, &encrypted).unwrap();
+        let decrypted = aes::decode(&sec, &encrypted).unwrap();
         println!("{:?}", decrypted);
     }
 
