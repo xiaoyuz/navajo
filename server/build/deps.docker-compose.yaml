@@ -1,0 +1,19 @@
+version: '3.7'
+
+services:
+  db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_USER: navajo
+      MYSQL_PASSWORD: example
+      MYSQL_DATABASE: navajo
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./migrations/:/docker-entrypoint-initdb.d
+
+volumes:
+  navajo-db:
+    driver: local
