@@ -1,5 +1,4 @@
-use std::rc::Rc;
-use ncrypto::algo::{aes, base64};
+use ncrypto::algo::aes;
 use ncrypto::algo::base64::decode_from_str;
 use crate::message::P2PMessage;
 use crate::packet::p2p_packet::{P2PPacket, PacketContent};

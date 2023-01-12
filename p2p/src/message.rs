@@ -97,6 +97,12 @@ impl From<&Message> for P2PMessage {
     }
 }
 
+impl From<&P2PMessage> for Message {
+    fn from(value: &P2PMessage) -> Self {
+        value.data.as_str().into()
+    }
+}
+
 impl From<&[u8]> for P2PMessage {
     fn from(value: &[u8]) -> Self {
         serde_json::from_slice(value).unwrap()

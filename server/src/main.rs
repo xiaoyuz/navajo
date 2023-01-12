@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use nredis::{RedisClient, RedisConfig};
 use crate::db::connect;
 use crate::db::repository::UserRepository;

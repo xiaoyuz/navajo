@@ -10,6 +10,7 @@ use common::errors::{NavajoError, NavajoResult};
 use common::errors::NavajoErrorRepr::SocketError;
 use p2p::message::Message::PingMessage;
 use p2p::message::P2PMessage;
+use p2p::packet::readers::{CryptoReader, PacketExtractor};
 use p2p::packet::writers::{MessageWriter, Writer};
 use crate::p2p::channel::{ChannelSignal, create_thread_close_channel};
 use crate::p2p::channel::ChannelSignal::{Message, RecycleChannelThread, SocketClosed};
@@ -107,8 +108,10 @@ impl P2PClient {
 
     fn start_socket_read_thread(&self, r: ReadHalf<TcpStream>, close_tx: mpsc::Sender<ChannelSignal>) {
         // Socket read handler thread, to handle message sent by server
+        let session_client = self.session_client.clone();
+        let tcp_port = self.config.local_port.to_string();
         spawn(async move {
-            socket_read_handle(r, close_tx).await;
+            socket_read_handle(r, close_tx, &session_client, tcp_port).await;
         });
     }
 
@@ -118,7 +121,7 @@ impl P2PClient {
         let tcp_port = self.config.local_port.clone();
         let message_writer = self.message_writer.clone();
         spawn(async move {
-            channel_handle(w, channel_rx, session_client, tcp_port, message_writer).await;
+            channel_handle(w, channel_rx, &session_client, tcp_port, &message_writer).await;
         });
     }
 
@@ -130,17 +133,17 @@ impl P2PClient {
         let ping_stop_mutex = Arc::new(Mutex::new(false));
         let ping_thread_mutex = ping_stop_mutex.clone();
         spawn(async move {
-            ping(ping_session_client, ping_channel_tx, &ping_device_id, ping_thread_mutex).await;
+            ping(&ping_session_client, ping_channel_tx, &ping_device_id, &ping_thread_mutex).await;
         });
         return ping_stop_mutex;
     }
 }
 
 async fn ping(
-    session_client: Arc<SessionClient>,
+    session_client: &SessionClient,
     channel_tx: ChannelSignalSender,
     device_id: &str,
-    ping_stop_mutex: Arc<Mutex<bool>>
+    ping_stop_mutex: &Mutex<bool>
 ) {
     loop {
         if *ping_stop_mutex.lock().await {
@@ -164,8 +167,11 @@ async fn ping(
 
 async fn socket_read_handle(
     mut r: ReadHalf<TcpStream>,
-    close_tx: mpsc::Sender<ChannelSignal>
+    close_tx: mpsc::Sender<ChannelSignal>,
+    session_client: &SessionClient,
+    tcp_port: String,
 ) {
+    let mut extractor = PacketExtractor::new();
     let mut buf = vec![0; 256];
     loop {
         match r.read(&mut buf).await {
@@ -174,7 +180,10 @@ async fn socket_read_handle(
                 println!("Socket closed by server");
                 return ();
             },
-            Ok(_) => { println!("{:?}", String::from_utf8_lossy(&buf)); },
+            Ok(n) => {
+                let message = handle_message(n, &buf, &mut extractor, &session_client, &tcp_port).await;
+                println!("{:?}", message);
+            },
             Err(_) => {
                 close_tx.send(SocketClosed).await.unwrap();
                 println!("Socket exception");
@@ -187,17 +196,17 @@ async fn socket_read_handle(
 async fn channel_handle(
     mut w: WriteHalf<TcpStream>,
     channel_rx: ChannelSignalReceiver,
-    session_client: Arc<SessionClient>,
+    session_client: &SessionClient,
     tcp_port: String,
-    message_writer: Arc<MessageWriter>,
+    message_writer: &MessageWriter,
 ) {
     while let Some(signal) = channel_rx.lock().await.recv().await {
         match signal {
             Message(message) => {
                 let encoded = encode_message(
-                    session_client.clone(),
+                    session_client,
                     tcp_port.clone(),
-                    message_writer.clone(),
+                    message_writer,
                     message
                 ).await;
                 if let Some(buf) = encoded {
@@ -211,9 +220,9 @@ async fn channel_handle(
 }
 
 async fn encode_message(
-    session_client: Arc<SessionClient>,
+    session_client: &SessionClient,
     tcp_port: String,
-    message_writer: Arc<MessageWriter>,
+    message_writer: &MessageWriter,
     message: P2PMessage
 ) -> Option<Vec<u8>> {
     let message_str: String = (&message).into();
@@ -222,4 +231,18 @@ async fn encode_message(
     let params = &[session.as_str(), secret.as_str()];
     let result = message_writer.process(&message_str, params)?;
     Some(result.as_bytes().to_vec())
+}
+
+async fn handle_message(
+    n: usize,
+    buf: &Vec<u8>,
+    extractor: &mut PacketExtractor,
+    session_client: &SessionClient,
+    tcp_port: &str,
+) -> Option<P2PMessage> {
+    let str = String::from_utf8_lossy(&buf[..n]).to_string();
+    let packet_content = extractor.extract(&str)?;
+    let secret = session_client.get_secret(tcp_port).await?;
+    let mut crypto_reader = CryptoReader::new(&secret);
+    crypto_reader.process(&packet_content)
 }
