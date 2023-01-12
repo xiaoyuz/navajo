@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::{Arc};
 use tokio::net::{TcpListener};
 use tokio::spawn;
@@ -20,14 +22,29 @@ pub struct P2PConfig {
 }
 
 pub struct P2PServer {
-    pub(crate) config: P2PConfig,
-    pub(crate) connection_map: ConnectionMap,
-    pub(crate) session_client: Arc<SessionClient>,
-    pub(crate) user_repository: Arc<UserRepository>,
-    pub(crate) queue_manager: Arc<QueueManager>,
+    config: P2PConfig,
+    connection_map: ConnectionMap,
+    session_client: Arc<SessionClient>,
+    user_repository: Arc<UserRepository>,
+    queue_manager: Arc<QueueManager>,
 }
 
 impl P2PServer {
+    pub fn new(
+        config: P2PConfig,
+        session_client: Arc<SessionClient>,
+        user_repository: Arc<UserRepository>,
+        queue_manager: Arc<QueueManager>,
+    ) -> Self {
+        Self {
+            config,
+            connection_map: Arc::new(Default::default()),
+            session_client,
+            user_repository,
+            queue_manager,
+        }
+    }
+
     pub async fn start(&self) -> NavajoResult<()> {
         let (tx, rx) = create_server_channel();
 

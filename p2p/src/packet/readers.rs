@@ -1,76 +1,47 @@
 use std::rc::Rc;
 use ncrypto::algo::{aes, base64};
+use ncrypto::algo::base64::decode_from_str;
 use crate::message::P2PMessage;
 use crate::packet::p2p_packet::{P2PPacket, PacketContent};
 
-pub trait Reader {
-    fn process(&mut self, data: &str) -> Option<P2PMessage>;
-
-    fn successor(&self) -> Option<Box<dyn Reader>>;
-
-    fn successor_process(&self, data: &str) -> Option<P2PMessage> {
-        self.successor()?.process(data)
-    }
-}
-
-pub struct MessageReader;
-
-impl Reader for MessageReader {
-    fn process(&mut self, data: &str) -> Option<P2PMessage> {
-        let res = base64::decode_from_str(data);
-        let res = String::from_utf8(res).unwrap();
-        serde_json::from_str(&res).ok()
-    }
-
-    fn successor(&self) -> Option<Box<dyn Reader>> {
-        None
-    }
-}
-
 pub struct CryptoReader {
-    query_secret: Rc<dyn Fn(String) -> Option<String>>,
+    secret: String,
 }
 
-impl Reader for CryptoReader {
-    fn process(&mut self, data: &str) -> Option<P2PMessage> {
-        let data = base64::decode_from_str(data);
-        let data = String::from_utf8(data).unwrap();
-        let packet_content: PacketContent = serde_json::from_str(&data).unwrap();
-        let session = packet_content.session;
-        let secret = &self.query_secret;
-        let secret = secret(session)?;
-        let data = base64::decode_from_str(&packet_content.data);
-        let content = aes::decode(secret.as_bytes(), &data).ok()?;
+impl CryptoReader {
+    pub fn new(secret: &str) -> Self {
+        Self {
+            secret: secret.to_string(),
+        }
+    }
+
+    pub fn process(&mut self, packet_content: &PacketContent) -> Option<P2PMessage> {
+        let secret = decode_from_str(&self.secret);
+        let data = decode_from_str(&packet_content.data);
+        let content = aes::decode(secret.as_slice(), &data).ok()?;
 
         let content = String::from_utf8(content).unwrap();
-        self.successor_process(&content)
-    }
-
-    fn successor(&self) -> Option<Box<dyn Reader>> {
-        Some(Box::new(MessageReader))
+        serde_json::from_str(&content).ok()
     }
 }
 
-pub struct BasicReader {
-    query_secret: Rc<dyn Fn(String) -> Option<String>>,
+pub struct PacketExtractor {
     temp_packet: Option<P2PPacket>,
 }
 
-impl BasicReader {
-    pub fn new(query_secret: Box<dyn Fn(String) -> Option<String>>) -> Self {
+impl PacketExtractor {
+    pub fn new() -> Self {
         Self {
-            query_secret: Rc::new(query_secret),
             temp_packet: None
         }
     }
-}
 
-impl Reader for BasicReader {
-    fn process(&mut self, data: &str) -> Option<P2PMessage> {
+    pub fn extract(&mut self, data: &str) -> Option<PacketContent> {
         let packets = packets_from_string(data);
         for packet in packets {
             if packet.with_head && packet.with_tail {
-                return self.successor_process(&packet.content);
+                let packet_content = self.gen_packet_content(&packet.content);
+                return Some(packet_content);
             } else {
                 if let Some(_) = self.temp_packet {
                     self.temp_packet = self.temp_packet.as_mut().map(|x| { x.concat(&packet) });
@@ -79,17 +50,19 @@ impl Reader for BasicReader {
                 }
                 let temp = self.temp_packet.as_ref().unwrap();
                 if temp.with_tail && temp.with_head {
-                    let res = self.successor_process(&temp.content);
+                    let packet_content = self.gen_packet_content(&temp.content);
                     self.temp_packet = None;
-                    return res;
+                    return Some(packet_content);
                 }
             }
         }
         None
     }
 
-    fn successor(&self) -> Option<Box<dyn Reader>> {
-        Some(Box::new(CryptoReader { query_secret: self.query_secret.clone() }))
+    fn gen_packet_content(&self, str: &str) -> PacketContent {
+        let decoded = decode_from_str(str);
+        let decoded = String::from_utf8(decoded).unwrap();
+        decoded.as_str().into()
     }
 }
 
@@ -102,7 +75,10 @@ fn packets_from_string(str: &str) -> Vec<P2PPacket> {
         res = res.or(Some(String::from("")));
         if char == '<' {
             res = Some(String::from(""));
-            packet = packet.map(|mut x| { x.with_head = true; x });
+            packet = packet.map(|mut x| {
+                x.with_head = true;
+                x
+            });
         } else if char == '>' {
             packet = packet.map(|mut x| {
                 x.with_tail = true;
@@ -113,11 +89,17 @@ fn packets_from_string(str: &str) -> Vec<P2PPacket> {
             packet = None;
             res = None;
         } else {
-            res = res.map(|mut x| { x.push(char); x });
+            res = res.map(|mut x| {
+                x.push(char);
+                x
+            });
         }
     }
     if let Some(_) = packet {
-        packet = packet.map(|mut x| { x.content = res.unwrap(); x });
+        packet = packet.map(|mut x| {
+            x.content = res.unwrap();
+            x
+        });
         packets.push(packet.unwrap());
     }
     packets

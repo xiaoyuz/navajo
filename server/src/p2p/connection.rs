@@ -4,6 +4,7 @@ use tokio::net::TcpStream;
 use tokio::spawn;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
+use p2p::packet::readers::PacketExtractor;
 use crate::p2p::channel::ChannelSignal::{ConnectionClose, ConnectionError, RemoteMessage};
 use crate::p2p::channel::{ChannelSignal, create_connection_channel};
 
@@ -17,7 +18,10 @@ pub struct Connection {
 impl Connection {
     pub fn new() -> Self {
         let (con_tx, con_rx) = create_connection_channel();
-        Self { con_tx, con_rx: Arc::new(Mutex::new(con_rx)) }
+        Self {
+            con_tx,
+            con_rx: Arc::new(Mutex::new(con_rx)),
+        }
     }
 
     pub async fn start(&self, server_channel_tx: Sender<ChannelSignal>, socket: TcpStream) {
@@ -52,6 +56,7 @@ impl Connection {
     ) {
         // Serve the socket read
         spawn(async move {
+            let mut extractor = PacketExtractor::new();
             let mut buf = vec![0; 256];
             loop {
                 match socket.lock().await.read(&mut buf).await {
@@ -60,12 +65,7 @@ impl Connection {
                         return;
                     }
                     Ok(n) => {
-                        let str = String::from_utf8_lossy(&buf[..n]).to_string();
-                        println!("{:?}", str);
-                        server_channel_tx.send(RemoteMessage {
-                            addr: peer_addr.clone(),
-                            content: str,
-                        }).await.unwrap();
+                        handle_message(n, &buf, &mut extractor, &server_channel_tx, peer_addr.clone()).await;
                     }
                     Err(_) => {
                         server_channel_tx.send(ConnectionError(peer_addr.clone())).await.unwrap();
@@ -74,6 +74,23 @@ impl Connection {
                 }
             }
         });
+    }
+}
+
+async fn handle_message(
+    n: usize,
+    buf: &Vec<u8>,
+    extractor: &mut PacketExtractor,
+    server_channel_tx: &Sender<ChannelSignal>,
+    addr: String,
+) {
+    let str = String::from_utf8_lossy(&buf[..n]).to_string();
+    println!("{:?}", str);
+    if let Some(packet_content) = extractor.extract(&str) {
+        server_channel_tx.send(RemoteMessage {
+            addr,
+            content: (&packet_content).into(),
+        }).await.unwrap();
     }
 }
 

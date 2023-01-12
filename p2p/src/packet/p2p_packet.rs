@@ -32,3 +32,15 @@ pub struct PacketContent {
     pub data: String,
     pub session: String,
 }
+
+impl From<&str> for PacketContent {
+    fn from(value: &str) -> Self {
+        serde_json::from_str(value).unwrap()
+    }
+}
+
+impl From<&PacketContent> for String {
+    fn from(value: &PacketContent) -> Self {
+        serde_json::to_string(value).unwrap()
+    }
+}

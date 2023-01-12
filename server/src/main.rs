@@ -50,13 +50,12 @@ async fn main() -> std::io::Result<()> {
     };
 
     let queue_manager = QueueManager::new(redis_client.clone());
-    let p2p_server = P2PServer {
-        config: p2p_config,
-        connection_map: Arc::new(Default::default()),
+    let p2p_server = P2PServer::new(
+        p2p_config,
         session_client,
         user_repository,
-        queue_manager,
-    };
+        queue_manager
+    );
     p2p_server.start().await.unwrap();
 
     server.start().await

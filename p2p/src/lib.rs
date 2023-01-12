@@ -12,27 +12,28 @@ mod tests {
     
     use crate::message::P2PMessage;
     use crate::packet::p2p_packet::P2PPacket;
-    use crate::packet::readers::{BasicReader, Reader};
+    use crate::packet::readers::{CryptoReader, PacketExtractor};
     use crate::packet::writers::{MessageWriter, Writer};
     
 
     #[test]
     fn test_writer_reader() {
-        let query = |_| {
-            Some(String::from("12345678901234567890123456789012"))
-        };
         let message = P2PMessage {
             message_type: 0,
             data: String::from("12345676")
         };
         let message = serde_json::to_string(&message).unwrap();
-        let query = Box::new(query);
-        let mut reader = BasicReader::new(query);
+
         let writer = MessageWriter;
-        let res = writer.process(&message, &["123", "12345678901234567890123456789012"]).unwrap();
+        let res = writer.process(&message, &["123", "fgVobm2TEGDyWX6GOJrXTuuUoNbfeMpJSa0WhdTcO0k="]).unwrap();
         println!("{}", res);
 
-        let message = reader.process(&res).unwrap();
+        let mut extractor = PacketExtractor::new();
+        let packet_content = extractor.extract(&res).unwrap();
+
+        let mut reader = CryptoReader::new("fgVobm2TEGDyWX6GOJrXTuuUoNbfeMpJSa0WhdTcO0k=");
+
+        let message = reader.process(&packet_content).unwrap();
         println!("{:?}", message);
     }
 
