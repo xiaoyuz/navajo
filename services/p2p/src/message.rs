@@ -5,8 +5,8 @@ use crate::message::Message::PingMessage;
 
 pub const TEXT_TYPE: MessageType = 0;
 
-const MESSAGE_TYPE_PING: MessageType = 0;
-const MESSAGE_TYPE_CHAT_MESSAGE: MessageType = 1;
+pub const MESSAGE_TYPE_PING: MessageType = 0;
+pub const MESSAGE_TYPE_CHAT_MESSAGE: MessageType = 1;
 
 type MessageType = u8;
 

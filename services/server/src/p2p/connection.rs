@@ -51,7 +51,9 @@ impl Connection {
         // Call from others
         spawn(async move {
             while let Some(message) = con_rx.lock().await.recv().await {
+                println!("Preper Forward message");
                 socket.lock().await.write_all(message.as_slice()).await.unwrap();
+                println!("Forward message");
             }
         });
     }

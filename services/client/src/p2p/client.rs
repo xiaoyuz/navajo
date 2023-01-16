@@ -6,7 +6,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
 use tokio::net::{TcpSocket, TcpStream};
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
-use tokio::time::sleep;
+use tokio::time::{interval, sleep};
 use common::errors::{NavajoError, NavajoResult};
 use common::errors::NavajoErrorRepr::SocketError;
 use p2p::message::Message::PingMessage;
@@ -150,8 +150,8 @@ async fn ping(
         if *ping_stop_mutex.lock().await {
             return;
         }
-        println!("=====ping start");
         sleep(Duration::from_secs(5)).await;
+        println!("=====ping start");
         let opt = session_client.get_device_account(device_id).await;
         if let None = opt {
             continue;
@@ -175,6 +175,7 @@ async fn socket_read_handle(
     let mut extractor = PacketExtractor::new();
     let mut buf = vec![0; 256];
     loop {
+        println!("Preper to read next");
         match r.read(&mut buf).await {
             Ok(0) => {
                 close_tx.send(SocketClosed).await.unwrap();
@@ -182,8 +183,11 @@ async fn socket_read_handle(
                 return ();
             },
             Ok(n) => {
+                println!("Preper to handle");
                 let message = handle_message(n, &buf, &mut extractor, &session_client, &tcp_port).await;
-                println!("{:?}", message);
+                if let Some(mes) = message {
+                    println!("{:?}", mes);
+                }
             },
             Err(_) => {
                 close_tx.send(SocketClosed).await.unwrap();
@@ -211,7 +215,8 @@ async fn channel_handle(
                     message
                 ).await;
                 if let Some(buf) = encoded {
-                    w.write_all(buf.as_slice()).await.unwrap()
+                    w.write_all(buf.as_slice()).await.unwrap();
+                    println!("Message sent");
                 }
             }
             RecycleChannelThread => return,

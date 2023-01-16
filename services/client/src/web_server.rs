@@ -9,8 +9,8 @@ use common::beans::{DeviceInfoRequest, DeviceInfoResponse};
 use common::errors::{HTTP_ERROR, INVALID_DEVICE_ID, NavajoError, NavajoResult};
 use ncrypto::algo::base64::encode_to_str;
 use ncrypto::algo::diffie_hellman::DiffieHellman;
-use p2p::message::Message::PingMessage;
-use p2p::message::P2PMessage;
+use p2p::message::Message::{ChatInfoMessage, PingMessage};
+use p2p::message::{MESSAGE_TYPE_CHAT_MESSAGE, P2PMessage};
 use crate::http::HttpClient;
 use crate::p2p::channel::ChannelSignal;
 use crate::p2p::channel::ChannelSignal::Message;
@@ -111,14 +111,20 @@ impl WebServer {
         Ok((session, shared_secret))
     }
 
-    pub async fn test_p2p(&self) -> NavajoResult<()> {
-        let ping_message = PingMessage {
-            address: "111".to_string(),
-            device_id: "222".to_string()
+    pub async fn test_p2p(&self, to: &str) -> NavajoResult<()> {
+        let session_client = self.session_client.clone();
+        let account = session_client.get_device_account(&self.device_id).
+            await.ok_or(NavajoError::new(INVALID_DEVICE_ID))?;
+        let message = ChatInfoMessage {
+            common_info: Default::default(),
+            from_address: account.address,
+            to_address: to.to_string(),
+            info_type: MESSAGE_TYPE_CHAT_MESSAGE,
+            content: "Hello".to_string()
         };
         let p2p_message = P2PMessage {
             message_type: 0,
-            data: (&ping_message).into(),
+            data: (&message).into(),
         };
         self.p2p_client_sender.send(Message(p2p_message)).await.unwrap();
         Ok(())

@@ -1,6 +1,12 @@
 use actix_web::{get, HttpResponse, post, Responder, web};
+use serde::Deserialize;
 use crate::errors::error_response;
 use crate::WebServer;
+
+#[derive(Deserialize)]
+struct Info {
+    to: String,
+}
 
 pub fn device_scope_cfg(cfg: &mut web::ServiceConfig) {
     cfg
@@ -24,8 +30,8 @@ async fn create_session(data: web::Data<WebServer>) -> impl Responder {
 }
 
 #[get("/testchat")]
-async fn testchat(mut data: web::Data<WebServer>) -> impl Responder {
-    data.test_p2p().await.unwrap();
+async fn testchat(mut data: web::Data<WebServer>, info: web::Query<Info>) -> impl Responder {
+    data.test_p2p(&info.to).await.unwrap();
     HttpResponse::Ok().body("Hello world!")
 }
 
