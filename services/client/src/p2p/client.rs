@@ -175,7 +175,6 @@ async fn socket_read_handle(
     let mut extractor = PacketExtractor::new();
     let mut buf = vec![0; 256];
     loop {
-        println!("Preper to read next");
         match r.read(&mut buf).await {
             Ok(0) => {
                 close_tx.send(SocketClosed).await.unwrap();
@@ -183,7 +182,6 @@ async fn socket_read_handle(
                 return ();
             },
             Ok(n) => {
-                println!("Preper to handle");
                 let message = handle_message(n, &buf, &mut extractor, &session_client, &tcp_port).await;
                 if let Some(mes) = message {
                     println!("{:?}", mes);

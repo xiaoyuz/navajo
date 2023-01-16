@@ -1,7 +1,7 @@
 use std::sync::Arc;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
 use tokio::net::TcpStream;
-use tokio::spawn;
+use tokio::{io, spawn};
 use tokio::sync::Mutex;
 use tokio::sync::mpsc::{Receiver, Sender};
 use p2p::message::{Message, P2PMessage};
@@ -32,12 +32,13 @@ impl Connection {
     }
 
     pub async fn start(&self, server_channel_tx: Sender<ChannelSignal>, socket: TcpStream) {
-        let peer_addr = format!("{}", socket.peer_addr().unwrap());
-        let socket = Arc::new(Mutex::new(socket));
-        let socket_read = socket.clone();
+        let peer_addr = format!("{}", &socket.peer_addr().unwrap());
+        let (r, w) = io::split(socket);
+        // let socket = Arc::new(Mutex::new(socket));
+        // let socket_read = socket.clone();
 
-        self.start_channel_handle_thread(socket);
-        self.start_socket_read_thread(socket_read, server_channel_tx, peer_addr);
+        self.start_channel_handle_thread(w);
+        self.start_socket_read_thread(r, server_channel_tx, peer_addr);
     }
 
     pub async fn call(&self, to_address: &str, message: P2PMessage) {
@@ -46,21 +47,19 @@ impl Connection {
         }
     }
 
-    fn start_channel_handle_thread(&self, socket: Arc<Mutex<TcpStream>>) {
+    fn start_channel_handle_thread(&self, mut w: WriteHalf<TcpStream>) {
         let con_rx = self.con_rx.clone();
         // Call from others
         spawn(async move {
             while let Some(message) = con_rx.lock().await.recv().await {
-                println!("Preper Forward message");
-                socket.lock().await.write_all(message.as_slice()).await.unwrap();
-                println!("Forward message");
+                w.write_all(message.as_slice()).await.unwrap();
             }
         });
     }
 
     fn start_socket_read_thread(
         &self,
-        socket: Arc<Mutex<TcpStream>>,
+        mut r: ReadHalf<TcpStream>,
         server_channel_tx: Sender<ChannelSignal>,
         peer_addr: String
     ) {
@@ -70,7 +69,7 @@ impl Connection {
             let mut extractor = PacketExtractor::new();
             let mut buf = vec![0; 256];
             loop {
-                match socket.lock().await.read(&mut buf).await {
+                match r.read(&mut buf).await {
                     Ok(0) => {
                         server_channel_tx.send(ConnectionClose(peer_addr.clone())).await.unwrap();
                         return;
