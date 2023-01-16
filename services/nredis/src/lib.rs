@@ -1,7 +1,9 @@
 use std::sync::Arc;
 use redis::{AsyncCommands, Client, RedisResult};
 use redis::aio::Connection;
+use serde::Deserialize;
 
+#[derive(Deserialize)]
 pub struct RedisConfig {
     pub host: String,
 }

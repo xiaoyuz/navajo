@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use actix_web::{App, HttpServer, web};
 use actix_web::web::Data;
+use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 use common::account::Account;
@@ -25,10 +26,11 @@ pub struct WebServer {
     p2p_client_sender: Arc<Sender<ChannelSignal>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize)]
 pub struct WebServerConfig {
     pub port: u16,
     pub tcp_port: String,
+    pub server_host: String,
 }
 
 impl WebServer {

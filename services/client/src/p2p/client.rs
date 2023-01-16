@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::time::Duration;
+use serde::Deserialize;
 use tokio::{io, spawn};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
 use tokio::net::{TcpSocket, TcpStream};
@@ -19,7 +20,7 @@ use crate::session::SessionClient;
 type ChannelSignalSender = Arc<mpsc::Sender<ChannelSignal>>;
 type ChannelSignalReceiver = Arc<Mutex<mpsc::Receiver<ChannelSignal>>>;
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize)]
 pub struct P2PConfig {
     pub local_port: String,
     pub server_port: String,
@@ -74,7 +75,7 @@ impl P2PClient {
         }
         let socket = TcpSocket::new_v4()?;
 
-        let server_url = format!("{}:{}", self.config.server_port, self.config.server_host);
+        let server_url = format!("{}:{}", self.config.server_host, self.config.server_port);
         let addr = server_url.parse().unwrap();
         let stream = socket.connect(addr).await?;
         let (r, w) = io::split(stream);
