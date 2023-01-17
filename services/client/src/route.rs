@@ -30,7 +30,7 @@ async fn create_session(data: web::Data<WebServer>) -> impl Responder {
 }
 
 #[get("/testchat")]
-async fn testchat(mut data: web::Data<WebServer>, info: web::Query<Info>) -> impl Responder {
+async fn testchat(data: web::Data<WebServer>, info: web::Query<Info>) -> impl Responder {
     data.test_p2p(&info.to).await.unwrap();
     HttpResponse::Ok().body("Hello world!")
 }

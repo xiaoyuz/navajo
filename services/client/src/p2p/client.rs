@@ -6,7 +6,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
 use tokio::net::{TcpSocket, TcpStream};
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
-use tokio::time::{interval, sleep};
+use tokio::time::sleep;
 use common::errors::{NavajoError, NavajoResult};
 use common::errors::NavajoErrorRepr::SocketError;
 use p2p::message::Message::PingMessage;

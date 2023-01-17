@@ -2,13 +2,13 @@ use std::env::args;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use uuid::Uuid;
-use nredis::{RedisClient, RedisConfig};
+use nredis::RedisClient;
 use crate::config::Config;
 use crate::http::HttpClient;
 use crate::p2p::channel::create_client_channel;
-use crate::p2p::client::{P2PClient, P2PConfig};
+use crate::p2p::client::P2PClient;
 use crate::session::SessionClient;
-use crate::web_server::{WebServer, WebServerConfig};
+use crate::web_server::WebServer;
 
 mod session;
 mod route;

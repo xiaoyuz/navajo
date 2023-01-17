@@ -9,7 +9,7 @@ use common::beans::{DeviceInfoRequest, DeviceInfoResponse};
 use common::errors::{HTTP_ERROR, INVALID_DEVICE_ID, NavajoError, NavajoResult};
 use ncrypto::algo::base64::encode_to_str;
 use ncrypto::algo::diffie_hellman::DiffieHellman;
-use p2p::message::Message::{ChatInfoMessage, PingMessage};
+use p2p::message::Message::ChatInfoMessage;
 use p2p::message::{MESSAGE_TYPE_CHAT_MESSAGE, P2PMessage};
 use crate::http::HttpClient;
 use crate::p2p::channel::ChannelSignal;
