@@ -19,11 +19,11 @@ impl P2PPacket {
         let mut content = self.content.to_owned();
         content.push_str(&other.content);
 
-        return P2PPacket {
+        P2PPacket {
             content,
             with_head: self.with_head,
             with_tail: other.with_tail,
-        };
+        }
     }
 }
 

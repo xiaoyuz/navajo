@@ -22,7 +22,7 @@ impl SessionClient {
     pub async fn get_device_account(&self, device_id: &str) -> Option<Account> {
         let json_str = self.redis_client.get(format!("{}{}", CLIENT_DEVICE_ACCOUNT, device_id).as_str()).await?;
         let account: Account = serde_json::from_str(&json_str).expect("json error");
-        return Some(account);
+        Some(account)
     }
 
     pub async fn set_device_account(&self, device_id: &str, account: &Account) {

@@ -136,7 +136,7 @@ impl P2PClient {
         spawn(async move {
             ping(&ping_session_client, ping_channel_tx, &ping_device_id, &ping_thread_mutex).await;
         });
-        return ping_stop_mutex;
+        ping_stop_mutex
     }
 }
 
@@ -153,7 +153,7 @@ async fn ping(
         sleep(Duration::from_secs(5)).await;
         println!("=====ping start");
         let opt = session_client.get_device_account(device_id).await;
-        if let None = opt {
+        if opt.is_none() {
             continue;
         }
         let account = opt.unwrap();
@@ -179,10 +179,10 @@ async fn socket_read_handle(
             Ok(0) => {
                 close_tx.send(SocketClosed).await.unwrap();
                 println!("Socket closed by server");
-                return ();
+                return ;
             },
             Ok(n) => {
-                let message = handle_message(n, &buf, &mut extractor, &session_client, &tcp_port).await;
+                let message = handle_message(n, &buf, &mut extractor, session_client, &tcp_port).await;
                 if let Some(mes) = message {
                     println!("{:?}", mes);
                 }
@@ -190,7 +190,7 @@ async fn socket_read_handle(
             Err(_) => {
                 close_tx.send(SocketClosed).await.unwrap();
                 println!("Socket exception");
-                return ();
+                return ;
             },
         }
     };

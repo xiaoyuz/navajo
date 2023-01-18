@@ -68,7 +68,7 @@ impl WebServer {
         let device_id  = &self.device_id;
 
         let mut account = session_client.get_device_account(device_id).await;
-        if let None = account {
+        if account.is_none() {
             let temp = Account::new();
             session_client.set_device_account(device_id, &temp).await;
             account = Some(temp);

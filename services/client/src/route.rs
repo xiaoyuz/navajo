@@ -24,7 +24,7 @@ async fn register(data: web::Data<WebServer>) -> impl Responder {
 #[get("/create_session")]
 async fn create_session(data: web::Data<WebServer>) -> impl Responder {
     data.create_session().await.map_or_else(
-        |e| error_response(e),
+        error_response,
         |res| HttpResponse::Ok().json(res)
     )
 }

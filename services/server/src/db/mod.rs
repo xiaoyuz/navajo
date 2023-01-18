@@ -33,7 +33,7 @@ impl From<&MysqlConfig> for String {
             config.host,
             config.port,
             config.database
-        ).to_string()
+        )
     }
 }
 

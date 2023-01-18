@@ -126,7 +126,7 @@ async fn channel_handle(
                     ChatInfoMessage { ref to_address, .. } => {
                         let addr_map = addr_map.lock().await;
                         let ip = addr_map.get(to_address);
-                        if let None = ip {
+                        if ip.is_none() {
                             continue;
                         }
                         if let Some(con) = con_map.lock().await.get(ip.unwrap()) {

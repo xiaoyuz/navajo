@@ -42,7 +42,7 @@ impl PacketExtractor {
                 let packet_content = self.gen_packet_content(&packet.content);
                 return Some(packet_content);
             } else {
-                if let Some(_) = self.temp_packet {
+                if self.temp_packet.is_some() {
                     self.temp_packet = self.temp_packet.as_mut().map(|x| { x.concat(&packet) });
                 } else {
                     self.temp_packet = Some(packet);
@@ -94,7 +94,7 @@ fn packets_from_string(str: &str) -> Vec<P2PPacket> {
             });
         }
     }
-    if let Some(_) = packet {
+    if packet.is_some() {
         packet = packet.map(|mut x| {
             x.content = res.unwrap();
             x

@@ -11,7 +11,7 @@ pub fn device_scope_cfg(cfg: &mut web::ServiceConfig) {
 async fn create_session(data: web::Data<Server>, body: web::Json<DeviceInfoRequest>) -> impl Responder {
     let request = body.0;
     data.create_session(&request).await.map_or_else(
-        |e| error_response(e),
+        error_response,
         |res|{
             let response = ApiResponse::success(res);
             HttpResponse::Ok().json(response)

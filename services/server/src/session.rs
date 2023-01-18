@@ -26,7 +26,7 @@ impl SessionClient {
         let key = format!("{}{}", SESSION_INFO, session);
         let json_str = self.redis_client.get(&key).await?;
         let session_info: SessionInfo = serde_json::from_str(&json_str).expect("json error");
-        return Some(session_info);
+        Some(session_info)
     }
 
     pub async fn set_session(&self, session: &str, session_info: &SessionInfo) {

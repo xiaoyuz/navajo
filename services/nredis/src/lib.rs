@@ -14,7 +14,7 @@ pub struct RedisClient {
 
 impl RedisClient {
     pub fn new(redis_config: Box<RedisConfig>) -> Arc<Self> {
-        let host = (*redis_config).host;
+        let host = redis_config.host;
         let rc = Client::open(host).expect("failed to connect redis");
         Arc::new(Self { rc })
     }
@@ -25,7 +25,7 @@ impl RedisClient {
         if res.is_err() {
             return None;
         }
-        return Some(res.unwrap());
+        Some(res.unwrap())
     }
 
     pub async fn set(&self, key: &str, value: &str) {

@@ -39,7 +39,7 @@ impl From<io::Error> for NavajoError {
 impl Display for NavajoError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self.repr {
-            IoError(err) => f.write_str(format!("IO error: {}", err.to_string()).as_str()),
+            IoError(err) => f.write_str(format!("IO error: {}", err).as_str()),
             MessageError { code, message } => f.write_str(format!("Got error: {} {}", code, message).as_str()),
             SocketError { message } => f.write_str(format!("Got error: {}", message).as_str())
         }

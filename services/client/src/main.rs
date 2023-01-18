@@ -59,7 +59,7 @@ async fn main() -> std::io::Result<()> {
 
 async fn generate_device_id(tcp_port: &str, session_client: &SessionClient) -> String {
     let mut device_id = session_client.get_device_id(tcp_port).await;
-    if let None = device_id {
+    if device_id.is_none() {
         let temp = Uuid::new_v4().to_string();
         session_client.set_device_id(tcp_port, &temp).await;
         device_id = Some(temp);
