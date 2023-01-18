@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 use crate::message::Message::PingMessage;
@@ -32,7 +32,7 @@ pub struct CommonInfo {
 impl Default for CommonInfo {
     fn default() -> Self {
         CommonInfo {
-            time_ms: SystemTime::now().elapsed().unwrap().as_millis(),
+            time_ms: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis(),
             request_id: Uuid::new_v4().to_string(),
             response_id: String::from(""),
         }

@@ -69,8 +69,9 @@ impl P2PServer {
     fn start_channel_handle_thread(&self, rx: Receiver<ChannelSignal>) {
         let con_map = self.connection_map.clone();
         let addr_map = self.address_ip_map.clone();
+        let queue_manager = self.queue_manager.clone();
         spawn(async move {
-            channel_handle(rx, con_map, addr_map).await;
+            channel_handle(rx, con_map, addr_map, queue_manager).await;
         });
     }
 }
@@ -96,6 +97,7 @@ async fn channel_handle(
     mut rx: Receiver<ChannelSignal>,
     con_map: ConnectionMap,
     addr_map: AddressIpMap,
+    queue_manager: Arc<QueueManager>,
 ) {
     while let Some(command) = rx.recv().await {
         match command {
@@ -110,6 +112,15 @@ async fn channel_handle(
                 println!("Got content {:?} {:?}", &peer_addr, &message);
                 match message {
                     PingMessage { address, .. } => {
+                        let queue_mes = queue_manager.acquire_queue(&address).await;
+                        if let Some(queue_mes) = queue_mes {
+                            for mes in queue_mes {
+                                if let Some(con) = con_map.lock().await.get(&peer_addr) {
+                                    con.call(&address, (&mes).into()).await;
+                                }
+                            }
+                            queue_manager.remove(&address).await;
+                        }
                         addr_map.lock().await.insert(address, peer_addr);
                     },
                     ChatInfoMessage { ref to_address, .. } => {
@@ -120,22 +131,11 @@ async fn channel_handle(
                         }
                         if let Some(con) = con_map.lock().await.get(ip.unwrap()) {
                             con.call(to_address, (&message).into()).await;
+                        } else {
+                            queue_manager.add_queue(&message).await;
                         }
                     }
                 }
-                // match message {
-                //     PingMessage { ref address, .. } => {
-                //         addr_map.lock().await.insert(address.to_string(), peer_addr.to_string());
-                //         let con_map = con_map.lock().await;
-                //         let con = con_map.get(&peer_addr).unwrap();
-                //         con.call(address, (&message).into()).await;
-                //     },
-                //     ChatInfoMessage { ref to_address, .. } => {
-                //         // if let Some(con) = forward_con(&to_address, &con_map, &addr_map).await {
-                //         //     con.call(to_address, (&message).into()).await;
-                //         // }
-                //     }
-                // }
             }
         }
     }
