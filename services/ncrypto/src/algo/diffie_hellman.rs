@@ -7,6 +7,12 @@ pub struct DiffieHellman {
     pub secret: EphemeralSecret,
 }
 
+impl Default for DiffieHellman {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DiffieHellman {
     pub fn new() -> Self {
         let secret = EphemeralSecret::new(OsRng);

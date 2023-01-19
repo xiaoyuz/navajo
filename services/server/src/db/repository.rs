@@ -35,7 +35,7 @@ impl UserRepository {
     }
 
     pub async fn insert_or_update(&self, user: &User) -> NavajoResult<()> {
-        let mut conn = self.get_conn().await.ok_or(NavajoError::new(DB_ERROR))?;
+        let mut conn = self.get_conn().await.ok_or_else(|| NavajoError::new(DB_ERROR))?;
         let params = params! {
             "address" => &user.address,
             "device_id" => &user.device_id,
@@ -45,7 +45,7 @@ impl UserRepository {
 
         let insert_res = r"INSERT INTO user(address, device_id, session, secret) VALUES (:address, :device_id, :session, :secret)"
             .with(&params).run(&mut conn).await;
-        if let Err(_) = insert_res {
+        if insert_res.is_err() {
             r"UPDATE user SET device_id = :device_id, session = :session, secret = :secret WHERE address = :address"
                 .with(&params).run(&mut conn).await.map_err(|_| NavajoError::new(DB_ERROR)).map(|_| ())
         } else {

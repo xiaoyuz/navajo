@@ -13,7 +13,7 @@ pub struct RedisClient {
 }
 
 impl RedisClient {
-    pub fn new(redis_config: Box<RedisConfig>) -> Arc<Self> {
+    pub fn new(redis_config: RedisConfig) -> Arc<Self> {
         let host = redis_config.host;
         let rc = Client::open(host).expect("failed to connect redis");
         Arc::new(Self { rc })

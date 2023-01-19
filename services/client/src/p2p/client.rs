@@ -246,7 +246,7 @@ async fn encode_message(
 
 async fn handle_message(
     n: usize,
-    buf: &Vec<u8>,
+    buf: &[u8],
     extractor: &mut PacketExtractor,
     session_client: &SessionClient,
     tcp_port: &str,

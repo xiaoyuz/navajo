@@ -22,7 +22,7 @@ async fn main() -> std::io::Result<()> {
 
     let mysql_pool = connect(&config.mysql);
     let user_repository = UserRepository::new(mysql_pool.clone());
-    let redis_client = RedisClient::new(Box::new(config.redis));
+    let redis_client = RedisClient::new(config.redis);
     let session_client = SessionClient::new(redis_client.clone());
 
     let server = Server {

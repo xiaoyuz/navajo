@@ -20,9 +20,5 @@ pub fn verify(src: &[u8], sign: &[u8], public_key: &[u8]) -> bool {
     let public_key = PublicKey::from_bytes(public_key).unwrap();
     let sign = Signature::from_bytes(sign).unwrap();
     let res = public_key.verify(src, &sign);
-    if let Ok(_) = res {
-        true
-    } else {
-        false
-    }
+    res.is_ok()
 }

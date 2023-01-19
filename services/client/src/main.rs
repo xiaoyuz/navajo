@@ -29,7 +29,7 @@ async fn main() -> std::io::Result<()> {
     let redis_config = config.redis;
 
     let (tx, rx) = create_signal_channel();
-    let redis_client = RedisClient::new(Box::new(redis_config));
+    let redis_client = RedisClient::new(redis_config);
     let session_client = SessionClient::new(redis_client.clone());
     let http_client = HttpClient::new(&server_config.server_host);
     let device_id = generate_device_id(&server_config.tcp_port, &session_client).await;

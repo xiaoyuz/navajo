@@ -84,7 +84,7 @@ impl WebServer {
         let device_id  = &self.device_id;
 
         let account = session_client.get_device_account(device_id)
-            .await.ok_or(NavajoError::new(INVALID_DEVICE_ID))?;
+            .await.ok_or_else(|| NavajoError::new(INVALID_DEVICE_ID))?;
 
         let dh = DiffieHellman::new();
         let dh_pub = dh.public_key_to_str();
@@ -112,7 +112,7 @@ impl WebServer {
     pub async fn test_p2p(&self, to: &str) -> NavajoResult<()> {
         let session_client = self.session_client.clone();
         let account = session_client.get_device_account(&self.device_id).
-            await.ok_or(NavajoError::new(INVALID_DEVICE_ID))?;
+            await.ok_or_else(|| NavajoError::new(INVALID_DEVICE_ID))?;
         let message = ChatInfoMessage {
             common_info: Default::default(),
             from_address: account.address,

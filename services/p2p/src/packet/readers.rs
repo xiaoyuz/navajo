@@ -28,6 +28,12 @@ pub struct PacketExtractor {
     temp_packet: Option<P2PPacket>,
 }
 
+impl Default for PacketExtractor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PacketExtractor {
     pub fn new() -> Self {
         Self {
@@ -70,8 +76,8 @@ fn packets_from_string(str: &str) -> Vec<P2PPacket> {
     let mut res: Option<String> = None;
     let mut packet: Option<P2PPacket> = None;
     for char in str.chars() {
-        packet = packet.or(Some(Default::default()));
-        res = res.or(Some(String::from("")));
+        packet = packet.or_else(|| Some(Default::default()));
+        res = res.or_else(|| Some(String::from("")));
         if char == '<' {
             res = Some(String::from(""));
             packet = packet.map(|mut x| {

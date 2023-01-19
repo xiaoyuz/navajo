@@ -96,7 +96,7 @@ impl Connection {
 
 async fn handle_message(
     n: usize,
-    buf: &Vec<u8>,
+    buf: &[u8],
     extractor: &mut PacketExtractor,
     server_channel_tx: &Sender<ChannelSignal>,
     addr: String,
