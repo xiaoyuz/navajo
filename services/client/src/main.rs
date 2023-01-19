@@ -1,11 +1,9 @@
 use std::env::args;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use uuid::Uuid;
 use nredis::RedisClient;
 use crate::config::Config;
 use crate::http::HttpClient;
-use crate::p2p::channel::create_client_channel;
+use crate::p2p::channel::create_signal_channel;
 use crate::p2p::client::P2PClient;
 use crate::session::SessionClient;
 use crate::web_server::WebServer;
@@ -30,17 +28,16 @@ async fn main() -> std::io::Result<()> {
     let p2p_config = config.p2p;
     let redis_config = config.redis;
 
-    let (tx, rx) = create_client_channel();
+    let (tx, rx) = create_signal_channel();
     let redis_client = RedisClient::new(Box::new(redis_config));
     let session_client = SessionClient::new(redis_client.clone());
     let http_client = HttpClient::new(&server_config.server_host);
     let device_id = generate_device_id(&server_config.tcp_port, &session_client).await;
 
-    let mutex_rx = Arc::new(Mutex::new(rx));
     let p2p_client = P2PClient::new(
         p2p_config,
         tx.clone(),
-        mutex_rx,
+        rx,
         session_client.clone(),
         device_id.clone(),
     );

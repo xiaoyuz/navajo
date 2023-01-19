@@ -12,8 +12,6 @@ use ncrypto::algo::diffie_hellman::DiffieHellman;
 use p2p::message::Message::ChatInfoMessage;
 use p2p::message::{MESSAGE_TYPE_CHAT_MESSAGE, P2PMessage};
 use crate::http::HttpClient;
-use crate::p2p::channel::ChannelSignal;
-use crate::p2p::channel::ChannelSignal::Message;
 use crate::route::device_scope_cfg;
 use crate::session::SessionClient;
 
@@ -23,7 +21,7 @@ pub struct WebServer {
     session_client: Arc<SessionClient>,
     http_client: Arc<HttpClient>,
     device_id: String,
-    p2p_client_sender: Arc<Sender<ChannelSignal>>,
+    p2p_client_sender: Arc<Sender<P2PMessage>>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -39,7 +37,7 @@ impl WebServer {
         session_client: Arc<SessionClient>,
         http_client: Arc<HttpClient>,
         device_id: String,
-        p2p_client_sender: Arc<Sender<ChannelSignal>>,
+        p2p_client_sender: Arc<Sender<P2PMessage>>,
     ) -> Self {
         Self {
             config,
@@ -126,7 +124,7 @@ impl WebServer {
             message_type: 0,
             data: (&message).into(),
         };
-        self.p2p_client_sender.send(Message(p2p_message)).await.unwrap();
+        self.p2p_client_sender.send(p2p_message).await.unwrap();
         Ok(())
     }
 }
