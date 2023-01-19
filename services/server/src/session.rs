@@ -46,7 +46,7 @@ mod tests {
         let redis_config = RedisConfig {
             host: "redis://127.0.0.1/".to_string(),
         };
-        let rc = RedisClient::new(Box::new(redis_config));
+        let rc = RedisClient::new(redis_config);
         let session_client1 = SessionClient::new(rc.clone());
 
         let session_info = SessionInfo {
