@@ -90,6 +90,7 @@ async fn connection_dispatch(
         let connection = Connection::new(user_repository.clone());
         connection.start(tx.clone(), socket).await;
         con_map.lock().await.insert(peer_addr, connection);
+        println!("ConMap size, {:?}", con_map.lock().await.keys().len());
     }
 }
 
@@ -109,7 +110,6 @@ async fn channel_handle(
                 con_map.lock().await.remove(&peer_addr);
             },
             RemoteMessage { peer_addr, message } => {
-                println!("Got content {:?} {:?}", &peer_addr, &message);
                 match message {
                     PingMessage { address, .. } => {
                         let queue_mes = queue_manager.acquire_queue(&address).await;

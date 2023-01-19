@@ -34,16 +34,15 @@ impl Connection {
     pub async fn start(&self, server_channel_tx: Sender<ChannelSignal>, socket: TcpStream) {
         let peer_addr = format!("{}", &socket.peer_addr().unwrap());
         let (r, w) = io::split(socket);
-        // let socket = Arc::new(Mutex::new(socket));
-        // let socket_read = socket.clone();
-
         self.start_channel_handle_thread(w);
         self.start_socket_read_thread(r, server_channel_tx, peer_addr);
     }
 
     pub async fn call(&self, to_address: &str, message: P2PMessage) {
+        println!("Call, {:?}", &message);
         if let Some(encoded) = encode_message(to_address, &self.user_repository, &self.message_writer, message).await {
-            self.con_tx.send(encoded).await.unwrap();
+            let ers = self.con_tx.send(encoded).await;
+            println!("Sent, {:?}", ers);
         }
     }
 
@@ -67,7 +66,7 @@ impl Connection {
         // Serve the socket read
         spawn(async move {
             let mut extractor = PacketExtractor::new();
-            let mut buf = vec![0; 256];
+            let mut buf = vec![0; 1024];
             loop {
                 match r.read(&mut buf).await {
                     Ok(0) => {

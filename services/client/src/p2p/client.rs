@@ -5,7 +5,6 @@ use tokio::{io, select, spawn};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
 use tokio::net::{TcpSocket, TcpStream};
 use tokio::sync::{broadcast, mpsc};
-use tokio::sync::mpsc::Receiver;
 use tokio::time::sleep;
 use common::errors::{NavajoError, NavajoResult};
 use common::errors::NavajoErrorRepr::SocketError;
@@ -116,7 +115,7 @@ impl P2PClient {
     fn start_socket_write_thread(
         &self,
         w: WriteHalf<TcpStream>,
-        channel_rx: Receiver<P2PMessage>,
+        channel_rx: mpsc::Receiver<P2PMessage>,
         socket_close_write_rx: broadcast::Receiver<()>
     ) {
         // Channel handler thread, to handler action of send message to socket
@@ -178,7 +177,7 @@ async fn socket_read_handle(
     socket_close_tx: broadcast::Sender<()>
 ) {
     let mut extractor = PacketExtractor::new();
-    let mut buf = vec![0; 256];
+    let mut buf = vec![0; 1024];
     loop {
         match r.read(&mut buf).await {
             Ok(0) => {
@@ -203,7 +202,7 @@ async fn socket_read_handle(
 
 async fn channel_handle(
     mut w: WriteHalf<TcpStream>,
-    mut channel_rx: Receiver<P2PMessage>,
+    mut channel_rx: mpsc::Receiver<P2PMessage>,
     session_client: &SessionClient,
     tcp_port: String,
     message_writer: &MessageWriter,
