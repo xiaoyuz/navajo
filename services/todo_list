@@ -1,0 +1,4 @@
+1. client改为交互式命令行
+2. server日志
+3. client实现助剂词登录
+4. client密钥存储改为文件存储
