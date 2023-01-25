@@ -1,19 +1,16 @@
 pub mod aes;
 pub mod base58;
 pub mod diffie_hellman;
-pub mod ecdsa;
 pub mod sha256;
 pub mod base64;
 
 #[cfg(test)]
 mod tests {
-    use ed25519_dalek::Keypair;
     use crate::algo::aes;
     use crate::algo::base58;
     use crate::algo::base64;
     use crate::algo::base64::decode_from_str;
     use crate::algo::diffie_hellman::DiffieHellman;
-    use crate::algo::ecdsa::{gen_key_pair, sign, verify};
     use crate::algo::sha256;
 
     #[test]
@@ -63,19 +60,6 @@ mod tests {
 
         println!("{:?}", share1);
         println!("{:?}", share2);
-    }
-
-    #[test]
-    fn test_ecdsa() {
-        let keypair = gen_key_pair();
-        let public_key = Keypair::from_bytes(&keypair).unwrap().public;
-        let src = "hello";
-
-        let sign = sign(&keypair, src);
-        println!("{:?}", sign);
-
-        let res = verify(src.as_bytes(), &sign, &public_key.to_bytes());
-        println!("{:?}", res);
     }
 
     #[test]

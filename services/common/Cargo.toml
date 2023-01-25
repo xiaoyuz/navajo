@@ -12,3 +12,7 @@ serde_json = "1.0"
 [dependencies.serde]
 version = "1.0"
 features = ["derive"]
+
+[dependencies.secp256k1]
+version = "0.26.0"
+features = ["global-context", "rand-std", "bitcoin-hashes-std", "serde"]
