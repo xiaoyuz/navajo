@@ -1,11 +1,11 @@
 use std::env::args;
-use uuid::Uuid;
 use nredis::RedisClient;
 use crate::config::Config;
 use crate::http::HttpClient;
 use crate::p2p::channel::create_signal_channel;
 use crate::p2p::client::P2PClient;
 use crate::session::SessionClient;
+use crate::utils::gen_device_id;
 use crate::web_server::WebServer;
 
 mod session;
@@ -15,6 +15,7 @@ mod http;
 mod p2p;
 mod web_server;
 mod config;
+mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -57,7 +58,7 @@ async fn main() -> std::io::Result<()> {
 async fn generate_device_id(tcp_port: &str, session_client: &SessionClient) -> String {
     let mut device_id = session_client.get_device_id(tcp_port).await;
     if device_id.is_none() {
-        let temp = Uuid::new_v4().to_string();
+        let temp = gen_device_id().unwrap();
         session_client.set_device_id(tcp_port, &temp).await;
         device_id = Some(temp);
     }

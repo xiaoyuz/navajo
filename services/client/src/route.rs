@@ -21,6 +21,12 @@ async fn register(data: web::Data<WebServer>) -> impl Responder {
     HttpResponse::Ok().json(account)
 }
 
+#[get("/login")]
+async fn login(data: web::Data<WebServer>) -> impl Responder {
+    let account = data.register().await.unwrap();
+    HttpResponse::Ok().json(account)
+}
+
 #[get("/create_session")]
 async fn create_session(data: web::Data<WebServer>) -> impl Responder {
     data.create_session().await.map_or_else(

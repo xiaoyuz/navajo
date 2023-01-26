@@ -1,30 +1,46 @@
-use secp256k1::{generate_keypair, Message, PublicKey, rand, Secp256k1, SecretKey};
+use bip39::{Language, Mnemonic};
+use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use secp256k1::ecdsa::Signature;
 use serde::{Deserialize, Serialize};
 use ncrypto::algo::{base58, base64, sha256};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct KeyPair {
+    entropy: Vec<u8>,
     sec_key: SecretKey,
     pub_key: PublicKey,
+}
+
+impl From<Mnemonic> for KeyPair {
+    fn from(m: Mnemonic) -> Self {
+        let entropy = m.to_entropy();
+        let seed = m.to_seed_normalized("");
+        let secp = Secp256k1::new();
+        let sec_key = SecretKey::from_slice(&seed[0..32]).unwrap();
+        let pub_key = PublicKey::from_secret_key(&secp, &sec_key);
+        Self {
+            entropy, sec_key, pub_key
+        }
+    }
 }
 
 impl KeyPair {
 
     pub fn new() -> Self {
-        let (sec_key, pub_key) = generate_keypair(&mut rand::thread_rng());
-        Self {
-            sec_key, pub_key
-        }
+        let mut rng = rand::thread_rng();
+        let m = Mnemonic::generate_in_with(&mut rng, Language::English, 12).unwrap();
+        m.into()
     }
 
-    pub fn recover(bytes: &[u8]) -> KeyPair {
-        let secp = Secp256k1::new();
-        let sec_key = SecretKey::from_slice(bytes).unwrap();
-        let pub_key = PublicKey::from_secret_key(&secp, &sec_key);
-        Self {
-            sec_key, pub_key
-        }
+    pub fn recover(mnemonic: &str) -> KeyPair {
+        let m = Mnemonic::parse_in_normalized(Language::English, mnemonic).unwrap();
+        m.into()
+    }
+
+    pub fn gen_mnemonic(&self) -> String {
+        let entropy = self.entropy.as_slice();
+        let m = Mnemonic::from_entropy_in(Language::English, entropy).unwrap();
+        m.to_string()
     }
 
     pub fn gen_public_key(&self) -> String {
@@ -68,11 +84,17 @@ mod tests {
         let my_public_key = key_pair.gen_public_key();
         println!("{:?}", my_public_key);
 
+        println!("{:?}", key_pair.gen_mnemonic());
+
         let data = "This is an apple.";
         let sign = key_pair.sign(data);
         println!("{:?}", sign);
 
         let res = verify(data, &sign, &my_public_key);
         println!("{:?}", res);
+
+        let m = key_pair.gen_mnemonic();
+        let recover = KeyPair::recover(&m);
+        println!("{:?}", recover.gen_mnemonic());
     }
 }

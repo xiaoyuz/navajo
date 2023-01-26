@@ -23,6 +23,8 @@ pub const INVALID_SESSION: NavajoErrorRepr = MessageError { code: 402, message: 
 pub const DB_ERROR: NavajoErrorRepr = MessageError { code: 500, message: "db error" };
 pub const HTTP_ERROR: NavajoErrorRepr = MessageError { code: 600, message: "http error" };
 
+pub const MAC_ADDR_ERROR: NavajoErrorRepr = MessageError { code: 700, message: "mac address parse error" };
+
 pub type NavajoResult<T> = Result<T, NavajoError>;
 
 #[derive(Debug)]
