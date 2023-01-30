@@ -11,6 +11,8 @@ struct Info {
 pub fn device_scope_cfg(cfg: &mut web::ServiceConfig) {
     cfg
         .service(register)
+        .service(login)
+        .service(logout)
         .service(create_session)
         .service(testchat);
 }
@@ -21,10 +23,18 @@ async fn register(data: web::Data<WebServer>) -> impl Responder {
     HttpResponse::Ok().json(account)
 }
 
-#[get("/login")]
-async fn login(data: web::Data<WebServer>) -> impl Responder {
-    let account = data.register().await.unwrap();
-    HttpResponse::Ok().json(account)
+#[post("/login")]
+async fn login(data: web::Data<WebServer>, body: String) -> impl Responder {
+    data.login(&body).await.map_or_else(
+        error_response,
+        |res| HttpResponse::Ok().json(res)
+    )
+}
+
+#[get("/logout")]
+async fn logout(data: web::Data<WebServer>) -> impl Responder {
+    data.logout().await;
+    HttpResponse::Ok().body(())
 }
 
 #[get("/create_session")]

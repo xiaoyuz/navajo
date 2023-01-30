@@ -21,14 +21,17 @@ impl SessionClient {
 
     pub async fn get_device_account(&self, device_id: &str) -> Option<Account> {
         let json_str = self.key_db.get(format!("{}{}", CLIENT_DEVICE_ACCOUNT, device_id).as_str()).await?;
-        let account: Account = serde_json::from_str(&json_str).expect("json error");
-        Some(account)
+        Some(json_str.into())
     }
 
     pub async fn set_device_account(&self, device_id: &str, account: &Account) {
         let key = format!("{}{}", CLIENT_DEVICE_ACCOUNT, device_id);
-        let json_str = serde_json::to_string(account).expect("json error");
+        let json_str: String = account.into();
         self.key_db.set(&key, &json_str).await;
+    }
+
+    pub async fn del_device_account(&self, device_id: &str) {
+        self.key_db.remove(format!("{}{}", CLIENT_DEVICE_ACCOUNT, device_id).as_str()).await;
     }
 
     pub async fn get_session(&self, device_id: &str) -> Option<String> {
@@ -41,6 +44,10 @@ impl SessionClient {
         self.key_db.set(&key, session).await;
     }
 
+    pub async fn del_session(&self, device_id: &str) {
+        self.key_db.remove(format!("{}{}", CLIENT_SESSION, device_id).as_str()).await;
+    }
+
     pub async fn get_secret(&self, device_id: &str) -> Option<String> {
         let key = format!("{}{}", CLIENT_SECRET, device_id);
         self.key_db.get(&key).await
@@ -49,6 +56,10 @@ impl SessionClient {
     pub async fn set_secret(&self, device_id: &str, secret: &str) {
         let key = format!("{}{}", CLIENT_SECRET, device_id);
         self.key_db.set(&key, secret).await;
+    }
+
+    pub async fn del_secret(&self, device_id: &str) {
+        self.key_db.remove(format!("{}{}", CLIENT_SECRET, device_id).as_str()).await;
     }
 
     pub async fn get_device_id(&self, client_name: &str) -> Option<String> {

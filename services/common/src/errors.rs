@@ -24,6 +24,7 @@ pub const DB_ERROR: NavajoErrorRepr = MessageError { code: 500, message: "db err
 pub const HTTP_ERROR: NavajoErrorRepr = MessageError { code: 600, message: "http error" };
 
 pub const MAC_ADDR_ERROR: NavajoErrorRepr = MessageError { code: 700, message: "mac address parse error" };
+pub const LOGIN_ERROR: NavajoErrorRepr = MessageError { code: 701, message: "login error" };
 
 pub type NavajoResult<T> = Result<T, NavajoError>;
 

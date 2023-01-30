@@ -15,11 +15,11 @@ impl Account {
         Self { key_pair, address }
     }
 
-    // pub fn recover(bytes: &[u8]) -> Account {
-    //     let key_pair = KeyPair::recover(bytes);
-    //     let address = key_pair.gen_address();
-    //     Account { key_pair, address }
-    // }
+    pub fn recover(mnemonic: &str) -> Account {
+        let key_pair = KeyPair::recover(mnemonic);
+        let address = key_pair.gen_address();
+        Account { key_pair, address }
+    }
 
     pub fn sign_data(&self, data: &str) -> String {
         self.key_pair.sign(data)
@@ -29,5 +29,17 @@ impl Account {
 impl Default for Account {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl From<String> for Account {
+    fn from(value: String) -> Self {
+        serde_json::from_str(&value).unwrap()
+    }
+}
+
+impl From<&Account> for String {
+    fn from(value: &Account) -> Self {
+        serde_json::to_string(value).unwrap()
     }
 }

@@ -6,7 +6,7 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 use common::account::Account;
 use common::beans::{DeviceInfoRequest, DeviceInfoResponse};
-use common::errors::{HTTP_ERROR, INVALID_DEVICE_ID, NavajoError, NavajoResult};
+use common::errors::{HTTP_ERROR, INVALID_DEVICE_ID, LOGIN_ERROR, NavajoError, NavajoResult};
 use ncrypto::algo::base64::encode_to_str;
 use ncrypto::algo::diffie_hellman::DiffieHellman;
 use p2p::message::Message::ChatInfoMessage;
@@ -71,6 +71,28 @@ impl WebServer {
             account = Some(temp);
         }
         Ok(account.unwrap())
+    }
+
+    pub async fn login(&self, mnemonic: &str) -> NavajoResult<Account> {
+        let session_client = self.session_client.clone();
+        let device_id  = &self.device_id;
+
+        let account = session_client.get_device_account(device_id).await;
+        if account.is_some() {
+            return Err(NavajoError::new(LOGIN_ERROR))
+        }
+        let temp = Account::recover(mnemonic);
+        session_client.set_device_account(device_id, &temp).await;
+        Ok(temp)
+    }
+
+    pub async fn logout(&self) {
+        let session_client = self.session_client.clone();
+        let device_id  = &self.device_id;
+
+        session_client.del_device_account(device_id).await;
+        session_client.del_session(device_id).await;
+        session_client.del_secret(device_id).await;
     }
 
     pub async fn create_session(&self) -> NavajoResult<(String, String)> {
