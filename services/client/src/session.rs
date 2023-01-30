@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use common::account::Account;
-use nredis::RedisClient;
+use crate::keystore::storage::KeyDB;
 
 const SESSION_EXPIRE_SECONDS: u64 = 30 * 24 * 60 * 60; // 30 days
 
@@ -11,16 +11,16 @@ const CLIENT_SECRET: &str = "client_secret:";
 const CLIENT_DEVICE_ID: &str = "client_device_id:";
 
 pub struct SessionClient {
-    redis_client: Arc<RedisClient>,
+    key_db: Arc<KeyDB>,
 }
 
 impl SessionClient {
-    pub fn new(redis_client: Arc<RedisClient>) -> Arc<Self> {
-        Arc::new(Self { redis_client })
+    pub fn new(key_db: Arc<KeyDB>) -> Arc<Self> {
+        Arc::new(Self { key_db })
     }
 
     pub async fn get_device_account(&self, device_id: &str) -> Option<Account> {
-        let json_str = self.redis_client.get(format!("{}{}", CLIENT_DEVICE_ACCOUNT, device_id).as_str()).await?;
+        let json_str = self.key_db.get(format!("{}{}", CLIENT_DEVICE_ACCOUNT, device_id).as_str()).await?;
         let account: Account = serde_json::from_str(&json_str).expect("json error");
         Some(account)
     }
@@ -28,52 +28,51 @@ impl SessionClient {
     pub async fn set_device_account(&self, device_id: &str, account: &Account) {
         let key = format!("{}{}", CLIENT_DEVICE_ACCOUNT, device_id);
         let json_str = serde_json::to_string(account).expect("json error");
-        self.redis_client.set_nx(&key, &json_str).await;
+        self.key_db.set(&key, &json_str).await;
     }
 
-    pub async fn get_session(&self, tcp_port: &str) -> Option<String> {
-        let key = format!("{}{}", CLIENT_SESSION, tcp_port);
-        self.redis_client.get(&key).await
+    pub async fn get_session(&self, device_id: &str) -> Option<String> {
+        let key = format!("{}{}", CLIENT_SESSION, device_id);
+        self.key_db.get(&key).await
     }
 
-    pub async fn set_session(&self, tcp_port: &str, session: &str) {
-        let key = format!("{}{}", CLIENT_SESSION, tcp_port);
-        self.redis_client.set_ex(&key, session, SESSION_EXPIRE_SECONDS as usize).await;
+    pub async fn set_session(&self, device_id: &str, session: &str) {
+        let key = format!("{}{}", CLIENT_SESSION, device_id);
+        self.key_db.set(&key, session).await;
     }
 
-    pub async fn get_secret(&self, tcp_port: &str) -> Option<String> {
-        let key = format!("{}{}", CLIENT_SECRET, tcp_port);
-        self.redis_client.get(&key).await
+    pub async fn get_secret(&self, device_id: &str) -> Option<String> {
+        let key = format!("{}{}", CLIENT_SECRET, device_id);
+        self.key_db.get(&key).await
     }
 
-    pub async fn set_secret(&self, tcp_port: &str, secret: &str) {
-        let key = format!("{}{}", CLIENT_SECRET, tcp_port);
-        self.redis_client.set_ex(&key, secret, SESSION_EXPIRE_SECONDS as usize).await;
+    pub async fn set_secret(&self, device_id: &str, secret: &str) {
+        let key = format!("{}{}", CLIENT_SECRET, device_id);
+        self.key_db.set(&key, secret).await;
     }
 
-    pub async fn get_device_id(&self, tcp_port: &str) -> Option<String> {
-        let key = format!("{}{}", CLIENT_DEVICE_ID, tcp_port);
-        self.redis_client.get(&key).await
+    pub async fn get_device_id(&self, client_name: &str) -> Option<String> {
+        let key = format!("{}{}", CLIENT_DEVICE_ID, client_name);
+        self.key_db.get(&key).await
     }
 
-    pub async fn set_device_id(&self, tcp_port: &str, device_id: &str) {
-        let key = format!("{}{}", CLIENT_DEVICE_ID, tcp_port);
-        self.redis_client.set(&key, device_id).await;
+    pub async fn set_device_id(&self, client_name: &str, device_id: &str) {
+        let key = format!("{}{}", CLIENT_DEVICE_ID, client_name);
+        self.key_db.set(&key, device_id).await;
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
     use common::account::Account;
-    use nredis::{RedisClient, RedisConfig};
+    use crate::keystore::storage::KeyDB;
     use crate::session::SessionClient;
 
     #[actix_rt::test]
     async fn test_session() {
-        let redis_config = RedisConfig {
-            host: "redis://127.0.0.1/".to_string(),
-        };
-        let rc = RedisClient::new(redis_config);
+        let key_db = KeyDB::init().await.unwrap();
+        let rc = Arc::new(key_db);
         let session_client1 = SessionClient::new(rc.clone());
 
         let account = Account::new();

@@ -23,6 +23,7 @@ pub struct P2PConfig {
     pub local_port: String,
     pub server_port: String,
     pub server_host: String,
+    pub client_name: String,
 }
 
 pub struct P2PClient {
@@ -106,9 +107,9 @@ impl P2PClient {
     ) {
         // Socket read handler thread, to handle message sent by server
         let session_client = self.session_client.clone();
-        let tcp_port = self.config.local_port.to_string();
+        let client_name = self.config.client_name.to_string();
         spawn(async move {
-            socket_read_handle(r, &session_client, tcp_port, socket_close_tx).await;
+            socket_read_handle(r, &session_client, client_name, socket_close_tx).await;
         });
     }
 
@@ -120,10 +121,10 @@ impl P2PClient {
     ) {
         // Channel handler thread, to handler action of send message to socket
         let session_client = self.session_client.clone();
-        let tcp_port = self.config.local_port.clone();
+        let client_name = self.config.client_name.clone();
         let message_writer = self.message_writer.clone();
         spawn(async move {
-            channel_handle(w, channel_rx, &session_client, tcp_port, &message_writer, socket_close_write_rx).await;
+            channel_handle(w, channel_rx, &session_client, client_name, &message_writer, socket_close_write_rx).await;
         });
     }
 
@@ -173,7 +174,7 @@ async fn ping(
 async fn socket_read_handle(
     mut r: ReadHalf<TcpStream>,
     session_client: &SessionClient,
-    tcp_port: String,
+    client_name: String,
     socket_close_tx: broadcast::Sender<()>
 ) {
     let mut extractor = PacketExtractor::new();
@@ -186,7 +187,7 @@ async fn socket_read_handle(
                 return ;
             },
             Ok(n) => {
-                let message = handle_message(n, &buf, &mut extractor, session_client, &tcp_port).await;
+                let message = handle_message(n, &buf, &mut extractor, session_client, &client_name).await;
                 if let Some(mes) = message {
                     println!("{:?}", mes);
                 }
@@ -204,7 +205,7 @@ async fn channel_handle(
     mut w: WriteHalf<TcpStream>,
     mut channel_rx: mpsc::Receiver<P2PMessage>,
     session_client: &SessionClient,
-    tcp_port: String,
+    client_name: String,
     message_writer: &MessageWriter,
     mut socket_close_write_rx: broadcast::Receiver<()>
 ) {
@@ -213,7 +214,7 @@ async fn channel_handle(
             Some(signal) = channel_rx.recv() => {
                 let encoded = encode_message(
                     session_client,
-                    tcp_port.clone(),
+                    client_name.clone(),
                     message_writer,
                     signal
                 ).await;
@@ -231,13 +232,14 @@ async fn channel_handle(
 
 async fn encode_message(
     session_client: &SessionClient,
-    tcp_port: String,
+    client_name: String,
     message_writer: &MessageWriter,
     message: P2PMessage
 ) -> Option<Vec<u8>> {
     let message_str: String = (&message).into();
-    let session = session_client.get_session(&tcp_port).await?;
-    let secret = session_client.get_secret(&tcp_port).await?;
+    let device_id = session_client.get_device_id(&client_name).await?;
+    let session = session_client.get_session(&device_id).await?;
+    let secret = session_client.get_secret(&device_id).await?;
     let params = &[session.as_str(), secret.as_str()];
     let result = message_writer.process(&message_str, params)?;
     Some(result.as_bytes().to_vec())
@@ -248,11 +250,12 @@ async fn handle_message(
     buf: &[u8],
     extractor: &mut PacketExtractor,
     session_client: &SessionClient,
-    tcp_port: &str,
+    client_name: &str,
 ) -> Option<P2PMessage> {
     let str = String::from_utf8_lossy(&buf[..n]).to_string();
     let packet_content = extractor.extract(&str)?;
-    let secret = session_client.get_secret(tcp_port).await?;
+    let device_id = session_client.get_device_id(client_name).await?;
+    let secret = session_client.get_secret(&device_id).await?;
     let mut crypto_reader = CryptoReader::new(&secret);
     crypto_reader.process(&packet_content)
 }

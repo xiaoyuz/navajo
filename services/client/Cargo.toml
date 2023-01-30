@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 common = { path = "../common" }
 ncrypto = { path = "../ncrypto" }
-nredis = { path = "../nredis" }
 p2p = { path = "../p2p" }
 actix-web = "4"
 actix-rt = "2.7.0"

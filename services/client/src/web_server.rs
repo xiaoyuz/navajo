@@ -10,7 +10,7 @@ use common::errors::{HTTP_ERROR, INVALID_DEVICE_ID, NavajoError, NavajoResult};
 use ncrypto::algo::base64::encode_to_str;
 use ncrypto::algo::diffie_hellman::DiffieHellman;
 use p2p::message::Message::ChatInfoMessage;
-use p2p::message::{MESSAGE_TYPE_CHAT_MESSAGE, P2PMessage};
+use p2p::message::{MESSAGE_TYPE_CHAT_MESSAGE, P2PMessage, TEXT_TYPE};
 use crate::http::HttpClient;
 use crate::route::device_scope_cfg;
 use crate::session::SessionClient;
@@ -27,7 +27,6 @@ pub struct WebServer {
 #[derive(Clone, Deserialize)]
 pub struct WebServerConfig {
     pub port: u16,
-    pub tcp_port: String,
     pub server_host: String,
 }
 
@@ -104,8 +103,8 @@ impl WebServer {
             .await.map_err(|_| NavajoError::new(HTTP_ERROR))?;
         let shared_secret = dh.compute_shared_secret_from_str(&dh_pub);
         let shared_secret = encode_to_str(&shared_secret);
-        session_client.set_session(&self.config.tcp_port, &session).await;
-        session_client.set_secret(&self.config.tcp_port, &shared_secret).await;
+        session_client.set_session(&device_id, &session).await;
+        session_client.set_secret(&device_id, &shared_secret).await;
         Ok((session, shared_secret))
     }
 
@@ -117,11 +116,11 @@ impl WebServer {
             common_info: Default::default(),
             from_address: account.address,
             to_address: to.to_string(),
-            info_type: MESSAGE_TYPE_CHAT_MESSAGE,
+            info_type: TEXT_TYPE,
             content: "Hello".to_string()
         };
         let p2p_message = P2PMessage {
-            message_type: 0,
+            message_type: MESSAGE_TYPE_CHAT_MESSAGE,
             data: (&message).into(),
         };
         self.p2p_client_sender.send(p2p_message).await.unwrap();

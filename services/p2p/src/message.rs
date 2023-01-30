@@ -88,7 +88,7 @@ impl From<&Message> for P2PMessage {
     fn from(value: &Message) -> Self {
         let message_type = match value {
             PingMessage { .. } => MESSAGE_TYPE_PING,
-            _ => MESSAGE_TYPE_PING,
+            _ => MESSAGE_TYPE_CHAT_MESSAGE,
         };
         P2PMessage {
             message_type,

@@ -1,6 +1,5 @@
 [web_server]
 port = 8087
-tcp_port = "7002"
 server_host = "http://127.0.0.1:28100"
 
 [redis]
@@ -10,3 +9,4 @@ host = "redis://127.0.0.1/"
 local_port = "7002"
 server_port = "6000"
 server_host = "127.0.0.1"
+client_name = "client2"
