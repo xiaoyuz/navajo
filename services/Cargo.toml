@@ -2,7 +2,6 @@
 
 members = [
     "ncrypto",
-    "nredis",
     "p2p",
     "client",
     "common",

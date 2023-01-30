@@ -1,7 +1,6 @@
 use std::env;
 use common::errors::NavajoResult;
-use nredis::RedisConfig;
-use crate::db::MysqlConfig;
+use crate::db::{MysqlConfig, RedisConfig};
 use crate::p2p::server::P2PConfig;
 use crate::server::ServerConfig;
 

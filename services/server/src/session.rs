@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use serde::{Deserialize, Serialize};
-use nredis::RedisClient;
+use crate::db::redis::RedisClient;
 
 const SESSION_EXPIRE_SECONDS: u64 = 30 * 24 * 60 * 60; // 30 days
 
@@ -39,6 +39,8 @@ impl SessionClient {
 #[cfg(test)]
 mod tests {
     use nredis::{RedisClient, RedisConfig};
+    use crate::db::redis::RedisClient;
+    use crate::db::RedisConfig;
     use crate::session::{SessionClient, SessionInfo};
 
     #[actix_rt::test]

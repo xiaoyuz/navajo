@@ -1,8 +1,10 @@
 use std::sync::Arc;
 use mysql_async::Pool;
+use serde::Deserialize;
 
 pub mod models;
 pub mod repository;
+pub mod redis;
 
 pub struct MysqlConfig {
     user: String,
@@ -37,7 +39,12 @@ impl From<&MysqlConfig> for String {
     }
 }
 
-pub fn connect(config: &MysqlConfig) -> Arc<Pool> {
+#[derive(Deserialize)]
+pub struct RedisConfig {
+    pub host: String,
+}
+
+pub fn connect_mysql(config: &MysqlConfig) -> Arc<Pool> {
     let url: String = config.into();
     let pool = Pool::new(url.as_str());
     Arc::new(pool)
@@ -45,14 +52,14 @@ pub fn connect(config: &MysqlConfig) -> Arc<Pool> {
 
 #[cfg(test)]
 mod tests {
-    use crate::db::{connect, MysqlConfig};
+    use crate::db::{connect_mysql, MysqlConfig};
     use crate::db::models::User;
     use crate::db::repository::UserRepository;
 
     #[actix_rt::test]
     async fn test_user() {
         let config = MysqlConfig::new("navajo", "example", "navajo", "127.0.0.1", 3306);
-        let pool = connect(&config);
+        let pool = connect_mysql(&config);
         let repo = UserRepository::new(pool.clone());
         let user = User {
             id: 0,

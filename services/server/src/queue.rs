@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use ncrypto::algo::base64::{decode_from_str, encode_to_str};
-use nredis::RedisClient;
 use p2p::message::Message;
+use crate::db::redis::RedisClient;
 
 const CHAT_MESSAGE_EXPIRE_SECONDS: u64 = 180 * 24 * 60 * 60; // 180 days
 

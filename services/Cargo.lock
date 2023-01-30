@@ -1586,14 +1586,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nredis"
-version = "0.1.0"
-dependencies = [
- "redis",
- "serde",
-]
-
-[[package]]
 name = "num-bigint"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2325,8 +2317,8 @@ dependencies = [
  "derive_more",
  "mysql_async",
  "ncrypto",
- "nredis",
  "p2p",
+ "redis",
  "serde",
  "serde_json",
  "tokio",

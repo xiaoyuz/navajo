@@ -1,6 +1,6 @@
-use nredis::RedisClient;
 use crate::config::Config;
-use crate::db::connect;
+use crate::db::connect_mysql;
+use crate::db::redis::RedisClient;
 use crate::db::repository::UserRepository;
 use crate::p2p::server::P2PServer;
 use crate::queue::QueueManager;
@@ -20,7 +20,7 @@ mod config;
 async fn main() -> std::io::Result<()> {
     let config = Config::new().unwrap();
 
-    let mysql_pool = connect(&config.mysql);
+    let mysql_pool = connect_mysql(&config.mysql);
     let user_repository = UserRepository::new(mysql_pool.clone());
     let redis_client = RedisClient::new(config.redis);
     let session_client = SessionClient::new(redis_client.clone());
