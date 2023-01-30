@@ -9,12 +9,10 @@ use ncrypto::algo::diffie_hellman::DiffieHellman;
 use crate::db::models::User;
 use crate::db::repository::UserRepository;
 use crate::route::device_scope_cfg;
-use crate::session::SessionClient;
 
 #[derive(Clone)]
 pub struct Server {
     pub(crate) config: ServerConfig,
-    pub(crate) session_client: Arc<SessionClient>,
     pub(crate) user_repository: Arc<UserRepository>,
 }
 

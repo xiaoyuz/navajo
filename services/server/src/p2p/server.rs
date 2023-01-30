@@ -11,7 +11,6 @@ use crate::p2p::channel::{ChannelSignal, create_server_channel};
 use crate::p2p::channel::ChannelSignal::{ConnectionClose, ConnectionError, RemoteMessage};
 use crate::p2p::connection::Connection;
 use crate::queue::QueueManager;
-use crate::session::SessionClient;
 
 type ConnectionMap = Arc<Mutex<HashMap<String, Connection>>>;
 type AddressIpMap = Arc<Mutex<HashMap<String, String>>>;
@@ -25,7 +24,6 @@ pub struct P2PServer {
     config: P2PConfig,
     connection_map: ConnectionMap,
     address_ip_map: AddressIpMap,
-    session_client: Arc<SessionClient>,
     user_repository: Arc<UserRepository>,
     queue_manager: Arc<QueueManager>,
 }
@@ -33,7 +31,6 @@ pub struct P2PServer {
 impl P2PServer {
     pub fn new(
         config: P2PConfig,
-        session_client: Arc<SessionClient>,
         user_repository: Arc<UserRepository>,
         queue_manager: Arc<QueueManager>,
     ) -> Self {
@@ -41,7 +38,6 @@ impl P2PServer {
             config,
             connection_map: Arc::new(Default::default()),
             address_ip_map: Arc::new(Default::default()),
-            session_client,
             user_repository,
             queue_manager,
         }
