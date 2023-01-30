@@ -16,7 +16,6 @@ mod http;
 mod p2p;
 mod web_server;
 mod config;
-mod utils;
 mod keystore;
 
 #[actix_web::main]

@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use mac_address::get_mac_address;
 
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 use common::errors::{NavajoError, NavajoResult};
 use common::errors::NavajoErrorRepr::IoError;
+use ncrypto::algo::{aes, sha256};
 
 pub struct KeyDB {
     store: Mutex<InMemStore>,
@@ -101,15 +103,28 @@ impl Persist {
         let mut buf = Vec::new();
         self.file.read_to_end(&mut buf).await.ok()?;
         self.file.rewind().await.ok()?;
-        let res: HashMap<String, String> = serde_json::from_slice(&buf).unwrap_or_else(|_| Default::default());
+
+        let secret = key_store_secret()?;
+        let decoded = aes::decode(&secret, &buf).unwrap_or(buf);
+
+        let res: HashMap<String, String> = serde_json::from_slice(&decoded).unwrap_or_else(|_| Default::default());
         Some(res)
     }
 
     async fn write_file(&mut self, res: &HashMap<String, String>) -> Option<()> {
         let new_map = serde_json::to_vec(res).ok()?;
+
+        let secret = key_store_secret()?;
+        let buf = aes::encode(&secret, &new_map).ok()?;
+
         self.file.set_len(0).await.ok()?;
-        self.file.write_all(&new_map).await.ok()?;
+        self.file.write_all(&buf).await.ok()?;
         self.file.rewind().await.ok()?;
         Some(())
     }
+}
+
+fn key_store_secret() -> Option<Vec<u8>> {
+    let mac_addr = get_mac_address().ok()??;
+    Some(sha256::encode(&mac_addr.bytes()))
 }
