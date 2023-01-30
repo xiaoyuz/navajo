@@ -62,6 +62,12 @@ impl KeyPair {
     }
 }
 
+impl Default for KeyPair {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub fn verify(src: &str, sign: &str, public_key: &str) -> bool {
     let src = src.as_bytes();
     let sign = base64::decode_from_str(sign);

@@ -103,8 +103,8 @@ impl WebServer {
             .await.map_err(|_| NavajoError::new(HTTP_ERROR))?;
         let shared_secret = dh.compute_shared_secret_from_str(&dh_pub);
         let shared_secret = encode_to_str(&shared_secret);
-        session_client.set_session(&device_id, &session).await;
-        session_client.set_secret(&device_id, &shared_secret).await;
+        session_client.set_session(device_id, &session).await;
+        session_client.set_secret(device_id, &shared_secret).await;
         Ok((session, shared_secret))
     }
 

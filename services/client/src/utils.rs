@@ -1,6 +1,6 @@
 use mac_address::get_mac_address;
-use uuid::Uuid;
-use common::errors::{MAC_ADDR_ERROR, NavajoError, NavajoResult};
+
+
 use ncrypto::algo::{base64, sha256};
 
 pub fn key_store_secret() -> Option<String> {

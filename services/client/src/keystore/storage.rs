@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::sync::Mutex;
@@ -82,7 +82,7 @@ impl Persist {
 
     async fn get(&mut self, key: &str) -> Option<String> {
         let res = self.read_file().await?;
-        res.get(key).and_then(|x| Some(x.to_string()))
+        res.get(key).map(|x| x.to_string())
     }
 
     async fn set(&mut self, key: &str, value: &str) -> Option<()> {

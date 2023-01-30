@@ -25,3 +25,9 @@ impl Account {
         self.key_pair.sign(data)
     }
 }
+
+impl Default for Account {
+    fn default() -> Self {
+        Self::new()
+    }
+}
